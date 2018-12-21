@@ -9,7 +9,7 @@ from src.config import config
 
 
 class Mapper:
-    platform_name = 'Сибирская Аграрная Группа'
+    platform_name = 'ПАО "ГК ПИК"'
     _platform_href = None
     _tender_short_model = None
     _customer_guid = None
@@ -169,7 +169,7 @@ class Mapper:
             'organisationsSearch': ' '.join(
                 (self.customer_name, str(self.customer_inn) if self.customer_inn else '',
                  str(self.customer_kpp) if self.customer_kpp else '')),
-            # Способ определеняи поставщика
+            # Способ определения поставщика
             'placingWay': self.tender_placing_way,
             # Ссылка на площадку (ссылка, название)
             'platform': {'href': self.platform_href, 'name': self.platform_name},
@@ -227,7 +227,7 @@ class Mapper:
     @property
     def platform_href(self):
         if not self._platform_href:
-            self._platform_href = 'http://agro.zakupki.tomsk.ru/Competition/Competition_Request_Cost.aspx'
+            self._platform_href = 'https://tender.pik.ru/tenders'
         return self._platform_href
 
     def load_customer_info(self, customer_name):
@@ -255,8 +255,7 @@ class Mapper:
         return self
 
     def load_tender_info(self, t_id, t_status, t_name, t_price, t_placing_way, t_placing_way_human, t_date_pub,
-                         t_date_open, t_date_close,
-                         t_url, lots):
+                         t_date_open, t_date_close, inn, kpp, region, c_name, t_url, lots):
         self.tender_id = t_id
         self.tender_price = t_price
         self.tender_status = t_status
@@ -268,4 +267,8 @@ class Mapper:
         self.tender_lots = lots
         self.tender_placing_way = t_placing_way
         self.tender_placing_way_human = t_placing_way_human
+        self.customer_name = c_name
+        self.customer_region = region
+        self.customer_inn = inn
+        self.customer_kpp = kpp
         return self

@@ -36,7 +36,7 @@ class HttpWorker:
     @retry(logger)
     def get_tenders_list(cls, target_param=None):
         if not target_param:
-            res = requests.get(config.tenders_list_url,
+            res = requests.get(config.base_url,
                                cookies=cls.cookies, proxies=config.proxy)
         else:
             res = requests.post(config.tenders_list_url, data=target_param,

@@ -57,11 +57,11 @@ def convert_datetime_str_to_timestamp(datetime_str):
         int: unix timestamp
     """
     if ':' in datetime_str:
-        date_format = "%d.%m.%Y %H:%M:%S%z" if datetime_str.count(':') == 2 else "%d.%m.%Y %H:%M%z"
+        date_format = "%Y-%m-%d %H:%M:%S%z" if datetime_str.count(':') == 2 else "%Y-%m-%d %H:%M%z"
     else:
-        date_format = "%d.%m.%Y%z"
-    return int(datetime.datetime.strptime(datetime_str, date_format).astimezone(pytz.utc).timestamp()) * 1000
+        date_format = "%Y-%m-%dz"
+    return int(datetime.datetime.strptime(datetime_str, date_format).astimezone(pytz.utc).timestamp())
 
 
 def get_utc():
-    return int(time.time() * 1000)
+    return int(time.time())
