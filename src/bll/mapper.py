@@ -254,21 +254,7 @@ class Mapper:
         self.customer_kpp = str(config.customer_info_map[customer_name]['kpp'])
         return self
 
-    def load_tender_info(self, t_id, t_status, t_name, t_price, t_placing_way, t_placing_way_human, t_date_pub,
-                         t_date_open, t_date_close, inn, kpp, region, c_name, t_url, lots):
-        self.tender_id = t_id
-        self.tender_price = t_price
-        self.tender_status = t_status
-        self.tender_name = t_name
-        self.tender_date_publication = t_date_pub
-        self.tender_date_open = t_date_open
-        self.tender_date_open_until = t_date_close
-        self.tender_url = t_url
-        self.tender_lots = lots
-        self.tender_placing_way = t_placing_way
-        self.tender_placing_way_human = t_placing_way_human
-        self.customer_name = c_name
-        self.customer_region = region
-        self.customer_inn = inn
-        self.customer_kpp = kpp
+    def load_tender_info(self, **kwargs):
+        for k in kwargs:
+            setattr(self, k, kwargs[k])
         return self

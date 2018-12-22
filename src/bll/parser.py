@@ -9,59 +9,39 @@ from src.config import config
 
 class Parser:
     COMPANY_DETAILS = {
-        'Группа Компаний ПИК': {'inn': '7713011336', 'kpp': '997450001', 'region': '77'},
-        'ПИК-Индустрия': {'inn': '7729755852', 'kpp': '774501001', 'region': '77'},
-        'ПИК-ЭЛЕМЕНТ': {'inn': '9729159290', 'kpp': '772901001', 'region': '77'},
-        'ООО "НСС"': {'inn': '4025412892', 'kpp': '402501001', 'region': '40'},
-        'ООО "480 КЖИ"': {'inn': '7111021111', 'kpp': '711101001', 'region': '71'},
-        'ЗАО "Волга-форм"': {'inn': '5259030971', 'kpp': '526301001', 'region': '52'},
-        'ООО "ПИК-Профиль"': {'inn': '7713153394', 'kpp': '772901001', 'region': '77'},
-        'ООО "ПИК-Комфорт"': {'inn': '7701208190', 'kpp': '770101001', 'region': '77'},
-        'АР "Энергосервис"': {'inn': '7709571825', 'kpp': '770301001', 'region': '77'},
-        'None': {'inn': '', 'kpp': '', 'region': ''}
+        'Группа Компаний ПИК': {'customer_inn': '7713011336', 'customer_kpp': '997450001', 'customer_region': '77'},
+        'ПИК-Индустрия': {'customer_inn': '7729755852', 'customer_kpp': '774501001', 'customer_region': '77'},
+        'ПИК-ЭЛЕМЕНТ': {'customer_inn': '9729159290', 'customer_kpp': '772901001', 'customer_region': '77'},
+        'ООО "НСС"': {'customer_inn': '4025412892', 'customer_kpp': '402501001', 'customer_region': '40'},
+        'ООО "480 КЖИ"': {'customer_inn': '7111021111', 'customer_kpp': '711101001', 'customer_region': '71'},
+        'ЗАО "Волга-форм"': {'customer_inn': '5259030971', 'customer_kpp': '526301001', 'customer_region': '52'},
+        'ООО "ПИК-Профиль"': {'customer_inn': '7713153394', 'customer_kpp': '772901001', 'customer_region': '77'},
+        'ООО "ПИК-Комфорт"': {'customer_inn': '7701208190', 'customer_kpp': '770101001', 'customer_region': '77'},
+        'АР "Энергосервис"': {'customer_inn': '7709571825', 'customer_kpp': '770301001', 'customer_region': '77'},
+        'None': {'customer_inn': '', 'customer_kpp': '', 'customer_region': ''}
     }
 
     @classmethod
     def parse_tenders(cls, tenders_list):
         for tender in tenders_list:
-            tender['t_url'] = 'https://tender.pik.ru/tenders/' + tender['guid']
+            tender['tender_url'] = 'https://tender.pik.ru/tenders/' + tender['guid']
             t_data = cls.COMPANY_DETAILS.get(tender.get('requester_name'))
             tender.update(t_data) if t_data else tender.update(cls.COMPANY_DETAILS.get('None'))
-            tender['t_id'] = tender.pop('guid')
-            tender['t_name'] = tender.pop('name')
-            tender['start_date'] = cls._parse_datetime_with_timezone(tender['start_date'])
-            tender['t_date_open'] = tender.pop('start_date')
-            tender['t_date_pub'] = tender('t_date_open')
-            tender['end_date'] = cls._parse_datetime_with_timezone(tender['end_date']) + 60*60*24
-            tender['t_date_close'] = tender.pop('end_date')
-            tender['t_status'] = 1 if tender['t_date_close'] > tools.get_utc() else 3
-            tender['c_name'] = tender.pop('requester_name')
-            tender['t_placing_way_human'] = tender.pop('contact_name')
+            tender['tender_id'] = tender.pop('guid')
+            tender['tender_name'] = tender.pop('name')
+            tender['start_date'] = cls._parse_datetime_with_timezone(tender['start_date']) * 1000
+            tender['tender_date_open'] = tender.pop('start_date')
+            tender['tender_date_publication'] = tender.get('tender_date_open')
+            tender['end_date'] = (cls._parse_datetime_with_timezone(tender['end_date']) + 60*60*24) * 1000
+            tender['tender_date_open_until'] = tender.pop('end_date')
+            tender['tender_status'] = 1 if tender['tender_date_open_until'] > tools.get_utc() else 3
+            tender['customer_name'] = tender.pop('requester_name')
+            tender['tender_placing_way_human'] = tender.pop('contact_name')
+            tender['tender_price'] = ''
+            tender['tender_lots'] = ''
+            tender['tender_placing_way'] = ''
 
-            # self.tender_price = t_price
-            # self.tender_lots = lots
-            # self.tender_placing_way = t_placing_way
         return tenders_list
-
-    @classmethod
-    def parse_tender_gen(cls, tender_html_raw, dt_open):
-        lots_gen = None
-        tender_html = html.fromstring(tender_html_raw)
-        lots_element = tender_html.xpath("//tr[@id='MainContent_carTabPage_TrLotPage2']")
-        date_close_raw = tender_html.xpath("//span[@id='MainContent_carTabPage_txtBiddingEndDate']")
-        price_raw = tender_html.xpath("//a[@id='MainContent_carTabPage_txtStartSumm']")
-        price = float(price_raw[0].text.replace(',', '.').replace('\xa0', '')) if price_raw and price_raw[0].text \
-            else None
-        date_close = cls._parse_datetime_with_timezone(date_close_raw[0].text) if date_close_raw and date_close_raw[
-            0].text else dt_open
-        if date_close:
-            status = 1 if date_close > tools.get_utc() else 3
-        else:
-            status = 3
-        if lots_element:
-            lots_trs = lots_element[0].xpath("td/table/tr[not(@class='DataGrid_HeaderStyle')]")
-            lots_gen = cls._parse_lots_gen(lots_trs)
-        yield status, price, date_close, lots_gen
 
     @classmethod
     def _parse_datetime_with_timezone(cls, datetime_str):
