@@ -3,7 +3,7 @@ from copy import copy
 
 import src.bll.tools as tools
 from sharedmodel.module import Root, Field, Customer
-from sharedmodel.module.enum import FieldType
+from sharedmodel.module.enum import FieldType, Modification
 from sharedmodel.module.table import Head, Cell
 from src.config import config
 
@@ -28,6 +28,8 @@ class Mapper:
     customer_region = None
     customer_inn = None
     customer_kpp = None
+    attachments = None
+    tender_contacts = None
 
     def __init__(self, id_, status, http_worker):
         """
@@ -55,7 +57,7 @@ class Mapper:
 
     def get_shared_model(self, lot=None):
         shared_model = Root()
-        # в данной блоке должны присутствовать maxPrice, guaranteeApp, guaranteeContract
+        # в данном блоке должны присутствовать maxPrice, guaranteeApp, guaranteeContract
         # блок заказчика
         shared_model.add_customer(
             Customer().set_properties(
@@ -138,12 +140,58 @@ class Mapper:
                 type=FieldType.DateTime
             ))
         )
+
+        # блок контактов и данных об организаторе
+        shared_model.add_category(
+            lambda c: c.set_properties(
+                name='Contacts',
+                displayName='Контактная информация',
+                modifications=[]
+            ).add_field(Field(
+                name='Organization',
+                displayName='Организация',
+                value=self.customer_name,
+                type=FieldType.String,
+                modifications=[]
+            )
+            ).add_array(
+                lambda c: c.set_properties(
+                    name='Contacts',
+                    displayName='Контакты',
+                    modifications=[Modification.HiddenLabel]
+                ).add_array_items(
+                    self.tender_contacts,  # list
+                    lambda item, index: c.add_field(Field(
+                        name='FIO' + str(index),
+                        displayName='ФИО',
+                        value=item['fio'],
+                        type=FieldType.String,
+                        modifications=[Modification.HiddenLabel]
+                    )
+                    ).add_field(Field(
+                        name='Phone' + str(index),
+                        displayName='Телефон',
+                        value=item['phone'],
+                        type=FieldType.String,
+                        modifications=[]
+                    )
+                    ).add_field(Field(
+                        name='Email' + str(index),
+                        displayName='Электронная почта',
+                        value=item['email'],
+                        type=FieldType.String,
+                        modifications=[Modification.Email]
+                    )
+                    )
+                )
+            )
+        )
         return shared_model.to_json()
 
     def _map_gen(self, one=False):
         model = {
             # заказчики
-            'customers': [{'guid': None, 'name': self.customer_name, 'region': self.customer_region}],
+            'customers': [{'guid': self.customer_guid, 'name': self.customer_name, 'region': self.customer_region}],
             # обеспечение заявки
             'guaranteeApp': None,
             # обеспечение контракта
@@ -191,7 +239,7 @@ class Mapper:
             # Если на площадке нет версии, то ставить 1
             'version': 1,
             # Прикрепленные документы (массив)
-            'attachments': []
+            'attachments': self.attachments
         }
         if not one:
             for lot_num, lot in enumerate(self.tender_lots):
