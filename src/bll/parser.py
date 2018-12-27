@@ -8,18 +8,13 @@ from src.config import config
 
 
 class Parser:
-    COMPANY_DETAILS = {
-        'Группа Компаний ПИК': {'customer_inn': '7713011336', 'customer_kpp': '997450001', 'customer_region': '77'},
-        'ПИК-Индустрия': {'customer_inn': '7729755852', 'customer_kpp': '774501001', 'customer_region': '77'},
-        'ПИК-ЭЛЕМЕНТ': {'customer_inn': '9729159290', 'customer_kpp': '772901001', 'customer_region': '77'},
-        'ООО "НСС"': {'customer_inn': '4025412892', 'customer_kpp': '402501001', 'customer_region': '40'},
-        'ООО "480 КЖИ"': {'customer_inn': '7111021111', 'customer_kpp': '711101001', 'customer_region': '71'},
-        'ЗАО "Волга-форм"': {'customer_inn': '5259030971', 'customer_kpp': '526301001', 'customer_region': '52'},
-        'ООО "ПИК-Профиль"': {'customer_inn': '7713153394', 'customer_kpp': '772901001', 'customer_region': '77'},
-        'ООО "ПИК-Комфорт"': {'customer_inn': '7701208190', 'customer_kpp': '770101001', 'customer_region': '77'},
-        'АР "Энергосервис"': {'customer_inn': '7709571825', 'customer_kpp': '770301001', 'customer_region': '77'},
-        'None': {'customer_inn': '', 'customer_kpp': '', 'customer_region': ''}
-    }
+
+    @classmethod
+    def get_data_organization(cls):
+        try:
+            return config.customer_info_map
+        except KeyError:
+            return {"None": {"customer_inn": "", "customer_kpp": "", "customer_region": ""}}
 
     @classmethod
     def _parse_datetime_with_timezone(cls, datetime_str):
@@ -39,9 +34,9 @@ class Parser:
 
     @classmethod
     def parse_tenders(cls, tenders_list):
+        t_data = cls.get_data_organization()
         for tender in tenders_list:
-            t_data = cls.COMPANY_DETAILS.get(tender.get('requester_name'))
-            tender.update(t_data) if t_data else tender.update(cls.COMPANY_DETAILS.get('None'))
+            tender.update(t_data.get(tender.get('requester_name')))
             tender['tender_url'] = 'https://tender.pik.ru/tenders/' + tender['guid']
             tender['tender_id'] = tender.pop('guid')
             tender['tender_name'] = tender.pop('name')
@@ -51,7 +46,8 @@ class Parser:
             tender['tender_status'] = 1 if tender['tender_date_open_until'] > tools.get_utc() else 3
             tender['_customer_guid'] = tender.pop('requester_id')
             tender['customer_name'] = tender.pop('requester_name')
-            tender['attachments'] = cls._get_attachments(tender.get('docs')[0], tender.get('tender_date_publication'))
+            if tender.get('docs'):
+                tender['attachments'] = cls._get_attachments(tender.get('docs')[0], tender.get('tender_date_publication'))
             tender['tender_price'] = 0
             tender['tender_placing_way'] = 0
             tender['tender_placing_way_human'] = ''
