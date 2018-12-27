@@ -33,14 +33,14 @@ class Collector:
         return self._rabbitmq
 
     def tender_list_gen(self):
-        tender_list = HttpWorker.get_tenders_list().json()['data']
-        tender_list_up = Parser.parse_tenders(tender_list)
-        for x in tender_list_up:
+        html = HttpWorker.get_tenders_list().text
+        tender_list = Parser.parse_tenders(html)
+        for x in tender_list:
             self.logger.info('[tender-{}] PARSING STARTED'.format(x['tender_url']))
-            res = self.repository.get_one(x['guid'])
-            if res and res['status'] == 3:
-                self.logger.info('[tender-{}] ALREADY EXIST'.format(x['tender_url']))
-                continue
+            # res = self.repository.get_one(x['guid'])
+            # if res and res['status'] == 3:
+            #     self.logger.info('[tender-{}] ALREADY EXIST'.format(x['tender_url']))
+            #     continue
 
             mapper = Mapper(id_=x['tender_id'], status=x['tender_status'], http_worker=HttpWorker)
             mapper.load_tender_info(**x)
@@ -49,9 +49,11 @@ class Collector:
             self.logger.info('[tender-{}] PARSING OK'.format(x['tender_url']))
 
     def collect(self):
-        while True:
-            for mapper in self.tender_list_gen():
-                self.repository.upsert(mapper.tender_short_model)
-                for model in mapper.tender_model_gen():
-                    self.rabbitmq.publish(model)
-            sleep(config.sleep_time)
+        # while True:
+        for mapper in self.tender_list_gen():
+            # self.repository.upsert(mapper.tender_short_model)
+            print(mapper.tender_short_model)
+            for model in mapper.tender_model_gen():
+                # self.rabbitmq.publish(model)
+                print(model)
+        # sleep(config.sleep_time)

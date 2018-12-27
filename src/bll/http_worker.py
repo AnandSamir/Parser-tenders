@@ -9,7 +9,7 @@ from src.config import config
 class HttpWorker:
     timeout = 30
     logger = logging.getLogger('{}.{}'.format(config.app_id, 'http'))
-    cookies = {'ASP.NET_SessionId': 'dkcoef1sbsslbuhcodmbdckf'}
+    cookies = {'ASP.NET_SessionId': 'dkcoef1sbsslbuhcodmbdckf', 'PageSize': 'pager=5.'}
     documentation_tab = {'__EVENTARGUMENT': 'CLICK:1'}
     addon_tab = {'__EVENTARGUMENT': 'CLICK:2'}
 
@@ -36,7 +36,7 @@ class HttpWorker:
     @retry(logger)
     def get_tenders_list(cls, target_param=None):
         if not target_param:
-            res = requests.get(config.base_url,
+            res = requests.get(config.tenders_list_url,
                                cookies=cls.cookies, proxies=config.proxy)
         else:
             res = requests.post(config.tenders_list_url, data=target_param,

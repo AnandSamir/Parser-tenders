@@ -47,7 +47,7 @@ def retry(logger, attempts=3, delay=100, exceptions=None):
     return decor
 
 
-def convert_datetime_str_to_timestamp(datetime_str):
+def convert_datetime_str_to_timestamp(datetime_str, platform_timezone):
     """Преобразует строку с датой в `unix timestamp` формат
 
     Args:
@@ -57,9 +57,11 @@ def convert_datetime_str_to_timestamp(datetime_str):
         int: unix timestamp
     """
     if ':' in datetime_str:
-        date_format = "%Y-%m-%d %H:%M:%S%z" if datetime_str.count(':') == 2 else "%Y-%m-%d %H:%M%z"
+        date_format = "%d.%m.%Y %H:%M:%S%z" if datetime_str.count(':') == 2 else "%d.%m.%Y %H:%M%z"
     else:
-        date_format = "%Y-%m-%dz"
+        date_format = "%d.%m.%Y %H:%M:%S%z"
+        datetime_str += " 00:00:00"
+    datetime_str += platform_timezone
     return int(datetime.datetime.strptime(datetime_str, date_format).astimezone(pytz.utc).timestamp())
 
 

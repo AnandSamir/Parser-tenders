@@ -9,7 +9,7 @@ from src.config import config
 
 
 class Mapper:
-    platform_name = 'ПАО "ГК ПИК"'
+    platform_name = 'Башнефть закупки'
     _platform_href = None
     _tender_short_model = None
     _customer_guid = None
@@ -67,57 +67,18 @@ class Mapper:
                 customer_guid=self.customer_guid,
                 customer_name=self.customer_name
             ))
-        # информация о закупках
-        if lot and 'positions' in lot:
-            shared_model.add_category(
-                lambda c: c.set_properties(
-                    name='ObjectInfo',
-                    displayName='Информация о объекте закупки'
-                ).add_table(
-                    lambda t: t.set_properties(
-                        name='Objects',
-                        displayName='Объекты закупки'
-                    ).set_header(
-                        lambda th: th.add_cells([
-                            Head(name='Name', displayName='Наименование'),
-                            Head(name='Code', displayName='ОКПД2'),
-                            Head(name='Quantity', displayName='Количество'),
-                            Head(name='PricePerOne',
-                                 displayName='Цена за единицу'),
-                            Head(name='Price', displayName='Стоимость')
-                        ])
-                    ).add_rows(
-                        lot['positions'],
-                        lambda elem, row: row.add_cells([
-                            Cell(
-                                name='Name',
-                                type=FieldType.String,
-                                value=elem['name']
-                            ),
-                            Cell(
-                                name='Code',
-                                type=FieldType.String,
-                                value=None
-                            ),
-                            Cell(
-                                name='Quantity',
-                                type=FieldType.Integer,
-                                value=elem['quantity']
-                            ),
-                            Cell(
-                                name='PricePerOne',
-                                type=FieldType.Price,
-                                value=None
-                            ),
-                            Cell(
-                                name='Price',
-                                type=FieldType.Price,
-                                value=None
-                            )
-                        ])
-                    )
-                )
-            )
+        # информация о закупке
+        shared_model.add_category(
+            lambda c: c.set_properties(
+                name='ObjectInfo',
+                displayName='Информация о объекте закупки'
+            ).add_field(Field(
+                name='TenderName',
+                displayName='Наименование закупки',
+                value=self.tender_name,
+                type=FieldType.String
+            ))
+        )
         # блок данных о заказе (в основном даты и места)
         shared_model.add_category(
             lambda c: c.set_properties(
@@ -139,52 +100,6 @@ class Mapper:
                 value=self.tender_date_open,
                 type=FieldType.DateTime
             ))
-        )
-
-        # блок контактов и данных об организаторе
-        shared_model.add_category(
-            lambda c: c.set_properties(
-                name='Contacts',
-                displayName='Контактная информация',
-                modifications=[]
-            ).add_field(Field(
-                name='Organization',
-                displayName='Организация',
-                value=self.customer_name,
-                type=FieldType.String,
-                modifications=[]
-            )
-            ).add_array(
-                lambda c: c.set_properties(
-                    name='Contacts',
-                    displayName='Контакты',
-                    modifications=[Modification.HiddenLabel]
-                ).add_array_items(
-                    self.tender_contacts,  # list
-                    lambda item, index: c.add_field(Field(
-                        name='FIO' + str(index),
-                        displayName='ФИО',
-                        value=item['fio'],
-                        type=FieldType.String,
-                        modifications=[Modification.HiddenLabel]
-                    )
-                    ).add_field(Field(
-                        name='Phone' + str(index),
-                        displayName='Телефон',
-                        value=item['phone'],
-                        type=FieldType.String,
-                        modifications=[]
-                    )
-                    ).add_field(Field(
-                        name='Email' + str(index),
-                        displayName='Электронная почта',
-                        value=item['email'],
-                        type=FieldType.String,
-                        modifications=[Modification.Email]
-                    )
-                    )
-                )
-            )
         )
         return shared_model.to_json()
 
@@ -220,7 +135,7 @@ class Mapper:
             # Способ определения поставщика
             'placingWay': self.tender_placing_way,
             # Ссылка на площадку (ссылка, название)
-            'platform': {'href': self.platform_href, 'name': self.platform_name},
+            'platform': {'href': self._platform_href, 'name': self.platform_name},
             # Дата публикации тендера UNIX EPOCH (UTC)
             'publicationDateTime': self.tender_date_publication,
             # Регион тендера (если нет явного, берем по региону заказчика)
@@ -271,12 +186,6 @@ class Mapper:
         if not self._customer_guid:
             self._customer_guid = ''
         return self._customer_guid
-
-    @property
-    def platform_href(self):
-        if not self._platform_href:
-            self._platform_href = 'https://tender.pik.ru/tenders'
-        return self._platform_href
 
     def load_customer_info(self, customer_name):
         org_info = self.http.get_organization(
