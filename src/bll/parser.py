@@ -1,6 +1,3 @@
-import logging
-import re
-from time import sleep
 from bs4 import BeautifulSoup as BS
 from src.bll import tools
 from src.config import config
@@ -16,7 +13,6 @@ class Parser:
     @classmethod
     def _get_attachments(cls, url):
         attachments = []
-        # sleep(1)
         tender_page = requests.get(url).text
         soup_tender = BS(tender_page, 'lxml')
         try:
