@@ -9,14 +9,16 @@ from src.config import config
 class HttpWorker:
     timeout = 30
     logger = logging.getLogger('{}.{}'.format(config.app_id, 'http'))
-    cookies = {'ASP.NET_SessionId': 'dkcoef1sbsslbuhcodmbdckf', 'PageSize': 'pager=25.'}
+    cookies = {'ASP.NET_SessionId': 'dkcoef1sbsslbuhcodmbdckf'}
     documentation_tab = {'__EVENTARGUMENT': 'CLICK:1'}
     addon_tab = {'__EVENTARGUMENT': 'CLICK:2'}
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
+                             'Chrome/71.0.3578.98 Safari/537.36'}
 
     @classmethod
     @retry(logger)
     def get_tenders(cls, url=None):
-        res = requests.get(url, cookies=cls.cookies, proxies=config.proxy)
+        res = requests.get(url, headers=cls.headers, cookies=cls.cookies, proxies=config.proxy)
         return res
 
     @classmethod

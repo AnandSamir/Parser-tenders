@@ -1,5 +1,6 @@
 from bs4 import BeautifulSoup as BS
 from src.bll import tools
+from src.bll.http_worker import HttpWorker
 from src.config import config
 import requests
 
@@ -40,10 +41,18 @@ class Parser:
     def parse_tenders(cls, html):
         tenders = []
         soup = BS(html, 'lxml')
-        trs = soup.find('div', id='div_pager_items').find_all('tr')[3:]
+        trs = soup.find('div', class_='view-content').find('table', class_='views-table').tbody.find_all('tr')
         for tr in trs:
             tender = {}
-            td = tr.find_all('td')
+            tds = tr.find_all('td')
+            tender['_platform_href'] = 'https://http://zakupki.rosneft.ru/'
+            tender['tender_url'] = tds[1].find('a').get('href')
+            html = HttpWorker.get_tenders(tender['tender_url']).text
+            soup = BS(html, 'lxml')
+            trs = soup.find('table', class_='tender-table')
+            # дальше нужно найти текст внутри "Ссылка на закупку на электронной торговой площадке"
+            # и если он есть, то continue, else продолжить собирать информацию
+
             tender['tender_date_open'] = cls._parse_datetime_with_timezone(td[0].find('a').text) * 1000
             tender['tender_date_publication'] = tender.get('tender_date_open')
             tender['tender_date_open_until'] = (cls._parse_datetime_with_timezone(td[1].find('a').text) + 86400) * 1000
