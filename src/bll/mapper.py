@@ -9,7 +9,7 @@ from src.config import config
 
 
 class Mapper:
-    platform_name = 'Башнефть закупки'
+    platform_name = 'Роснефть закупки'
     _platform_href = None
     _tender_short_model = None
     _customer_guid = None
@@ -28,8 +28,14 @@ class Mapper:
     customer_region = None
     customer_inn = None
     customer_kpp = None
+    customer_ogrn = None
+    customer_address = None
+    customer_phone = None
+    customer_email = None
     attachments = None
     tender_contacts = None
+    tender_currency = None
+    tender_modDateTime = None
 
     def __init__(self, id_, status, http_worker):
         """
@@ -58,6 +64,16 @@ class Mapper:
     def get_shared_model(self, lot=None):
         shared_model = Root()
         # в данном блоке должны присутствовать maxPrice, guaranteeApp, guaranteeContract
+        # Основной блок
+        shared_model.add_general(
+            lambda f: f.set_properties(
+                name='Currency',
+                displayName='Валюта',
+                value=self.tender_currency,
+                type=FieldType.String,
+                modifications=[]
+            )
+        )
         # блок заказчика
         shared_model.add_customer(
             Customer().set_properties(
@@ -74,11 +90,43 @@ class Mapper:
                 displayName='Информация о объекте закупки'
             ).add_field(Field(
                 name='TenderName',
-                displayName='Наименование закупки',
+                displayName='Наименование тендера',
                 value=self.tender_name,
                 type=FieldType.String
             ))
         )
+        # информация о лотах
+        if lot and 'positions' in lot:
+            shared_model.add_category(
+                lambda c: c.set_properties(
+                    name='ObjectLots',
+                    displayName='Лоты'
+                ).add_table(
+                    lambda t: t.set_properties(
+                        name='Objects',
+                        displayName='Лоты'
+                    ).set_header(
+                        lambda th: th.add_cells([
+                            Head(name='Name', displayName='Наименование'),
+                            Head(name='Price', displayName='Стоимость')
+                        ])
+                    ).add_rows(
+                        lot['positions'],
+                        lambda elem, row: row.add_cells([
+                            Cell(
+                                name='Name',
+                                type=FieldType.String,
+                                value=elem['name']
+                            ),
+                            Cell(
+                                name='Price',
+                                type=FieldType.Price,
+                                value=elem['price']
+                            )
+                        ])
+                    )
+                )
+            )
         # блок данных о заказе (в основном даты и места)
         shared_model.add_category(
             lambda c: c.set_properties(
@@ -100,6 +148,58 @@ class Mapper:
                 value=self.tender_date_open,
                 type=FieldType.DateTime
             ))
+        )
+        # блок контактов и данных об организаторе
+        shared_model.add_category(
+            lambda c: c.set_properties(
+                name='Contacts',
+                displayName='Контактная информация',
+                modifications=[]
+            ).add_field(Field(
+                name='Organization',
+                displayName='Организация',
+                value=self.customer_name,
+                type=FieldType.String,
+                modifications=[]
+            )
+            ).add_array(
+                lambda c: c.set_properties(
+                    name='Contacts',
+                    displayName='Контакты',
+                    modifications=[Modification.HiddenLabel]
+                ).add_array_items(
+                    self.tender_contacts,  # list
+                    lambda item, index: c.add_field(Field(
+                        name='FIO' + str(index),
+                        displayName='ФИО',
+                        value=item['fio'],
+                        type=FieldType.String,
+                        modifications=[Modification.HiddenLabel]
+                    )
+                    ).add_field(Field(
+                        name='Address' + str(index),
+                        displayName='Адрес',
+                        value=item['address'],
+                        type=FieldType.String,
+                        modifications=[]
+                    )
+                    ).add_field(Field(
+                        name='Phone' + str(index),
+                        displayName='Телефон',
+                        value=item['phone'],
+                        type=FieldType.String,
+                        modifications=[]
+                    )
+                    ).add_field(Field(
+                        name='Email' + str(index),
+                        displayName='Электронная почта',
+                        value=item['email'],
+                        type=FieldType.String,
+                        modifications=[Modification.Email]
+                    )
+                    )
+                )
+            )
         )
         return shared_model.to_json()
 
@@ -141,20 +241,22 @@ class Mapper:
             # Регион тендера (если нет явного, берем по региону заказчика)
             'region': self.customer_region,
             # Дата начала подачи заявок UNIX EPOCH (UTC)
-            'submissionCloseDateTime': self.tender_date_open,
+            'submissionStartDateTime': self.tender_date_open,
             # Дата окончания подачи заявок UNIX EPOCH (UTC)
-            'submissionStartDateTime': None,
+            'submissionCloseDateTime': self.tender_date_open_until,
             # Дата проведения аукциона в электронной форме (если есть) UNIX EPOCH (UTC)
             'biddingDateTime': self.tender_date_open,
             # Дата маппинга модели в UNIX EPOCH (UTC) (milliseconds)
             'timestamp': tools.get_utc(),
             # Тип парсера (можно не менять)
-            'type': 234,
+            'type': 30,
             # Версия извещения
             # Если на площадке нет версии, то ставить 1
             'version': 1,
             # Прикрепленные документы (массив)
-            'attachments': self.attachments
+            'attachments': self.attachments,
+            # Дата изменения тендера
+            'modDateTime': self.tender_modDateTime
         }
         if not one:
             for lot_num, lot in enumerate(self.tender_lots):

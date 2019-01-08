@@ -44,10 +44,10 @@ class Collector:
             tender_list = Parser.parse_tenders(html)
             for x in tender_list:
                 self.logger.info('[tender-{}] PARSING STARTED'.format(x['tender_url']))
-                # res = self.repository.get_one(x['guid'])
-                # if res and res['status'] == 3:
-                #     self.logger.info('[tender-{}] ALREADY EXIST'.format(x['tender_url']))
-                #     continue
+                res = self.repository.get_one(x['guid'])
+                if res and res['status'] == 3:
+                    self.logger.info('[tender-{}] ALREADY EXIST'.format(x['tender_url']))
+                    continue
 
                 mapper = Mapper(id_=x['tender_id'], status=x['tender_status'], http_worker=HttpWorker)
                 mapper.load_tender_info(**x)
@@ -58,11 +58,9 @@ class Collector:
             url = 'http://zakupki.rosneft.ru/ru/zakupki/all?page={}'.format(str(i))
 
     def collect(self):
-        # while True:
-        for mapper in self.tender_list_gen():
-            # self.repository.upsert(mapper.tender_short_model)
-            print(mapper.tender_short_model)
-            for model in mapper.tender_model_gen():
-                # self.rabbitmq.publish(model)
-                print(model)
-        # sleep(config.sleep_time)
+        while True:
+            for mapper in self.tender_list_gen():
+                self.repository.upsert(mapper.tender_short_model)
+                for model in mapper.tender_model_gen():
+                    self.rabbitmq.publish(model)
+            sleep(config.sleep_time)

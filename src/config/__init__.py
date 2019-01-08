@@ -13,7 +13,7 @@ class Config:
     proxy = None
 
     def __init__(self):
-        self.app_id = 'bash-teck'
+        self.app_id = 'rosneft'
         self.root_dir = '%s/../..' % os.path.dirname(os.path.abspath(__file__))
         self.configure_logging()
         self.logger = logging.getLogger('{}.{}'.format(self.app_id, 'config'))
@@ -29,7 +29,7 @@ class Config:
         if 'proxy' in file_config and file_config['proxy']['enabled']:
             self.set_up_proxy(file_config['proxy'])
         # ссылки
-        self.base_url = 'https://zakupki.bashneft.ru'
+        self.base_url = 'https://zakupki.rosneft.ru'
         self.tenders_list_url = '%s/%s' % (
             self.base_url, '?page=0&q=D8FSSAAAAAAAABAAZM5PIP8YG63DAMCSGA4LEMTSAATAKT49A3BWG9JDQQSLBIIFTI2IHLTBBA22AGIM0YAIFCQ7528AAAAA&sort=DateEndDesc&mode=all')
         self.tender_url = '%s/%s' % (self.base_url,
