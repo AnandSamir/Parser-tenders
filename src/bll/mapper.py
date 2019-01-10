@@ -186,7 +186,7 @@ class Mapper:
     @property
     def customer_guid(self):
         if not self._customer_guid:
-            self._customer_guid = ''
+            self._customer_guid = None
         return self._customer_guid
 
     def load_customer_info(self, customer_name):
