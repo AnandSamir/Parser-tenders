@@ -9,7 +9,7 @@ from src.config import config
 
 
 class Mapper:
-    platform_name = 'Роснефть закупки'
+    platform_name = 'X5 Retail Group'
     _platform_href = None
     _tender_short_model = None
     _customer_guid = None
@@ -34,8 +34,6 @@ class Mapper:
     customer_email = None
     attachments = None
     tender_contacts = None
-    tender_currency = None
-    tender_modDateTime = None
 
     def __init__(self, id_, status, http_worker):
         """
@@ -64,16 +62,6 @@ class Mapper:
     def get_shared_model(self, lot=None):
         shared_model = Root()
         # в данном блоке должны присутствовать maxPrice, guaranteeApp, guaranteeContract
-        # Основной блок
-        shared_model.add_general(
-            lambda f: f.set_properties(
-                name='Currency',
-                displayName='Валюта',
-                value=self.tender_currency,
-                type=FieldType.String,
-                modifications=[]
-            )
-        )
         # блок заказчика
         shared_model.add_customer(
             Customer().set_properties(
@@ -84,49 +72,15 @@ class Mapper:
                 customer_name=self.customer_name
             ))
         # информация о закупке
-        shared_model.add_category(
-            lambda c: c.set_properties(
-                name='ObjectInfo',
-                displayName='Информация о объекте закупки'
-            ).add_field(Field(
+        shared_model.add_general(
+            lambda f: f.set_properties(
                 name='TenderName',
                 displayName='Наименование тендера',
                 value=self.tender_name,
-                type=FieldType.String
-            ))
-        )
-        # информация о лотах
-        if lot and 'positions' in lot:
-            shared_model.add_category(
-                lambda c: c.set_properties(
-                    name='ObjectLots',
-                    displayName='Лоты'
-                ).add_table(
-                    lambda t: t.set_properties(
-                        name='Objects',
-                        displayName='Лоты'
-                    ).set_header(
-                        lambda th: th.add_cells([
-                            Head(name='Name', displayName='Наименование'),
-                            Head(name='Price', displayName='Стоимость')
-                        ])
-                    ).add_rows(
-                        lot['positions'],
-                        lambda elem, row: row.add_cells([
-                            Cell(
-                                name='Name',
-                                type=FieldType.String,
-                                value=elem['name']
-                            ),
-                            Cell(
-                                name='Price',
-                                type=FieldType.Price,
-                                value=elem['price']
-                            )
-                        ])
-                    )
-                )
+                type=FieldType.String,
+                modifications=[]
             )
+        )
         # блок данных о заказе (в основном даты и места)
         shared_model.add_category(
             lambda c: c.set_properties(
@@ -138,68 +92,16 @@ class Mapper:
                 value=self.tender_date_open,
                 type=FieldType.DateTime
             )).add_field(Field(
-                name='SubmissionCloseDateTime',
-                displayName='Дата окончания приема заявок',
-                value=self.tender_date_open_until,
-                type=FieldType.DateTime
-            )).add_field(Field(
                 name='biddingDateTime',
                 displayName='Дата проведения торгов',
                 value=self.tender_date_open,
                 type=FieldType.DateTime
+            )).add_field(Field(
+                name='SubmissionCloseDateTime',
+                displayName='Дата окончания приема заявок',
+                value=self.tender_date_open_until,
+                type=FieldType.DateTime
             ))
-        )
-        # блок контактов и данных об организаторе
-        shared_model.add_category(
-            lambda c: c.set_properties(
-                name='Contacts',
-                displayName='Контактная информация',
-                modifications=[]
-            ).add_field(Field(
-                name='Organization',
-                displayName='Организация',
-                value=self.customer_name,
-                type=FieldType.String,
-                modifications=[]
-            )
-            ).add_array(
-                lambda c: c.set_properties(
-                    name='Contacts',
-                    displayName='Контакты',
-                    modifications=[Modification.HiddenLabel]
-                ).add_array_items(
-                    self.tender_contacts,  # list
-                    lambda item, index: c.add_field(Field(
-                        name='FIO' + str(index),
-                        displayName='ФИО',
-                        value=item['fio'],
-                        type=FieldType.String,
-                        modifications=[Modification.HiddenLabel]
-                    )
-                    ).add_field(Field(
-                        name='Address' + str(index),
-                        displayName='Адрес',
-                        value=item['address'],
-                        type=FieldType.String,
-                        modifications=[]
-                    )
-                    ).add_field(Field(
-                        name='Phone' + str(index),
-                        displayName='Телефон',
-                        value=item['phone'],
-                        type=FieldType.String,
-                        modifications=[]
-                    )
-                    ).add_field(Field(
-                        name='Email' + str(index),
-                        displayName='Электронная почта',
-                        value=item['email'],
-                        type=FieldType.String,
-                        modifications=[Modification.Email]
-                    )
-                    )
-                )
-            )
         )
         return shared_model.to_json()
 
@@ -254,9 +156,7 @@ class Mapper:
             # Если на площадке нет версии, то ставить 1
             'version': 1,
             # Прикрепленные документы (массив)
-            'attachments': self.attachments,
-            # Дата изменения тендера
-            'modDateTime': self.tender_modDateTime
+            'attachments': self.attachments
         }
         if not one:
             for lot_num, lot in enumerate(self.tender_lots):
