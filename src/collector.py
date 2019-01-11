@@ -44,7 +44,7 @@ class Collector:
             tender_list = Parser.parse_tenders(html)
             for x in tender_list:
                 self.logger.info('[tender-{}] PARSING STARTED'.format(x['tender_url']))
-                res = self.repository.get_one(x['guid'])
+                res = self.repository.get_one(x['tender_id'])
                 if res and res['status'] == 3:
                     self.logger.info('[tender-{}] ALREADY EXIST'.format(x['tender_url']))
                     continue
