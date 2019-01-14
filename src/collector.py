@@ -40,10 +40,10 @@ class Collector:
             for _ in tender_list:
                 for x in _:
                     self.logger.info('[tender-{}] PARSING STARTED'.format(x['tender_url']))
-                    # res = self.repository.get_one(x['tender_id'])
-                    # if res and res['status'] == 3:
-                    #     self.logger.info('[tender-{}] ALREADY EXIST'.format(x['tender_url']))
-                    #     continue
+                    res = self.repository.get_one(x['tender_id'])
+                    if res and res['status'] == 3:
+                        self.logger.info('[tender-{}] ALREADY EXIST'.format(x['tender_url']))
+                        continue
 
                     mapper = Mapper(id_=x['tender_id'], status=x['tender_status'], http_worker=HttpWorker)
                     mapper.load_tender_info(**x)
