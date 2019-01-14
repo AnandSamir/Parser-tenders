@@ -32,7 +32,7 @@ class Parser:
                 'href': '',
                 'publicationDateTime': cls._parse_datetime_with_timezone(tds[2].text.strip()) * 1000,
                 'realName': tds[1].text.strip(),
-                'size': tds[3].text.strip(),
+                'size': float(tds[3].text.strip().split()[0]),
             })
         return attachments
 
