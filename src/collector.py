@@ -33,7 +33,7 @@ class Collector:
         return self._rabbitmq
 
     def tender_list_gen(self):
-        f_url = 'https://zakupki.bashneft.ru/?page={}&q=D8FSSAAAAAAAABAAZM5PIP8YG63DAMCSGA4LEMTSAATAKT49A3BWG9JDQQSLBIIFTI2IHLTBBA22AGIM0YAIFCQ7528AAAAA&sort=DateEndDesc&mode=all'
+        f_url = 'https://zakupki.bashneft.ru/?page={}&q=D8FSSAAAAAAAABAAZM5PIP8YG63DAMCSGA4LEMTSAATAKT49A4SKBCP8WES3YKEDZ2SSSMMADEGLKAAE4WE6YQ2AAAAwA'
         urls = [f_url.format(str(i)) for i in range(0, 1644)]
         for url in urls:
             try:
