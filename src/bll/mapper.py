@@ -175,9 +175,9 @@ class Mapper:
             # Регион тендера (если нет явного, берем по региону заказчика)
             'region': self.customer_region,
             # Дата начала подачи заявок UNIX EPOCH (UTC)
-            'submissionCloseDateTime': self.tender_date_open,
+            'submissionCloseDateTime': self.tender_date_open_until,
             # Дата окончания подачи заявок UNIX EPOCH (UTC)
-            'submissionStartDateTime': None,
+            'submissionStartDateTime': self.tender_date_open,
             # Дата проведения аукциона в электронной форме (если есть) UNIX EPOCH (UTC)
             'biddingDateTime': self.tender_date_open,
             # Дата маппинга модели в UNIX EPOCH (UTC) (milliseconds)

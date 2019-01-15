@@ -36,7 +36,10 @@ class Parser:
     def parse_tenders(cls, tenders_list):
         t_data = cls.get_data_organization()
         for tender in tenders_list:
-            tender.update(t_data.get(tender.get('requester_name')))
+            try:
+                tender.update(t_data.get(tender.get('requester_name', None)))
+            except:
+                tender.update(t_data.get('None'))
             tender['tender_url'] = 'https://tender.pik.ru/tenders/' + tender['guid']
             tender['tender_id'] = tender.pop('guid')
             tender['tender_name'] = tender.pop('name')
