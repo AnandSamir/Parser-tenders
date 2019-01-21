@@ -33,23 +33,26 @@ class Collector:
         return self._rabbitmq
 
     def tender_list_gen(self):
-        url = 'https://tender.x5.ru/auction/guiding/list_auction/{}-start'
-        for i in range(1, 5):
-            html = HttpWorker.get_tenders(url.format(str(i))).text
-            tender_list = Parser.parse_tenders(html)
-            for _ in tender_list:
-                for x in _:
-                    self.logger.info('[tender-{}] PARSING STARTED'.format(x['tender_url']))
-                    res = self.repository.get_one(x['tender_id'])
-                    if res and res['status'] == 3:
-                        self.logger.info('[tender-{}] ALREADY EXIST'.format(x['tender_url']))
-                        continue
+        url = 'http://sitno.ru/tender/index.php/tenders_detail.php?LOT_ID=11767&PAGEN_1={}'
+        num_page = 1
+        while True:
+            html = HttpWorker.get_tenders(url.format(str(num_page))).text
+            num_page += 1
+            tender_list, next_url = Parser.parse_tenders(html)
+            if not next_url:
+                break
+            for x in tender_list:
+                self.logger.info('[tender-{}] PARSING STARTED'.format(x['tender_url']))
+                res = self.repository.get_one(x['tender_id'])
+                if res and res['status'] == 3:
+                    self.logger.info('[tender-{}] ALREADY EXIST'.format(x['tender_url']))
+                    continue
 
-                    mapper = Mapper(id_=x['tender_id'], status=x['tender_status'], http_worker=HttpWorker)
-                    mapper.load_tender_info(**x)
-                    yield mapper
+                mapper = Mapper(id_=x['tender_id'], status=x['tender_status'], http_worker=HttpWorker)
+                mapper.load_tender_info(**x)
+                yield mapper
 
-                    self.logger.info('[tender-{}] PARSING OK'.format(x['tender_url']))
+                self.logger.info('[tender-{}] PARSING OK'.format(x['tender_url']))
 
     def collect(self):
         while True:

@@ -13,7 +13,7 @@ class Config:
     proxy = None
 
     def __init__(self):
-        self.app_id = 'X5_RG'
+        self.app_id = 'sitno'
         self.root_dir = '%s/../..' % os.path.dirname(os.path.abspath(__file__))
         self.configure_logging()
         self.logger = logging.getLogger('{}.{}'.format(self.app_id, 'config'))
@@ -29,15 +29,15 @@ class Config:
         if 'proxy' in file_config and file_config['proxy']['enabled']:
             self.set_up_proxy(file_config['proxy'])
         # ссылки
-        self.base_url = 'https://tender.x5.ru/auction/guiding/halls'
+        self.base_url = ''
         self.tenders_list_url = '%s/%s' % (
-            self.base_url, '?page=0&q=D8FSSAAAAAAAABAAZM5PIP8YG63DAMCSGA4LEMTSAATAKT49A3BWG9JDQQSLBIIFTI2IHLTBBA22AGIM0YAIFCQ7528AAAAA&sort=DateEndDesc&mode=all')
+            self.base_url, '')
         self.tender_url = '%s/%s' % (self.base_url,
                                      'Competition_Document.aspx')
         self.lot_url = '%s/%s' % (self.base_url, 'Competition_lot_Pos.aspx')
         self.organizations_host = file_config["organizations"]["host"]
         self.organizations_token = file_config["organizations"]["token"]
-        self.sleep_time = 60 * 60 * 12
+        self.sleep_time = 60
 
     def set_up_proxy(self, proxy_config):
         proxy_str = "http://{host}".format(host=proxy_config['host'])

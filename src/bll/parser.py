@@ -20,86 +20,59 @@ class Parser:
         return tools.convert_datetime_str_to_timestamp(datetime_str, config.platform_timezone)
 
     @classmethod
-    def _get_attachments(cls, url):
-        attachments = []
-        html = HttpWorker.get_tenders(url).text
-        soup = BS(html, 'lxml')
-        trs = soup.find(text='Конкурсная документация').findNext('table').find_all('tr')[1:]
-        for tr in trs:
-            tds = tr.find_all('td')
-            attachments.append({
-                'displayName': tds[1].text.strip(),
-                'href': '',
-                'publicationDateTime': cls._parse_datetime_with_timezone(tds[2].text.strip()) * 1000,
-                'realName': tds[1].text.strip(),
-                'size': float(tds[3].text.strip().split()[0]),
-            })
-        return attachments
-
-    @classmethod
     def _get_lot(cls, name, url):
         lots = {'num': 1, 'name': name, 'url': url, 'price': 0, 'positions': [{'name': name}]}
         return [lots]
 
     @classmethod
-    def _get_archive(cls, ts, next_url):
-        t_data = cls.get_data_organization()
-        html = HttpWorker.get_tenders(next_url).text
-        soup = BS(html, 'lxml')
-        while next_url:
-            trs = soup.find('table', id='mytable').find_all('tr')[1:]
-            for tr in trs:
-                tender = {}
-                tds = tr.find_all('td')
-                tender['platform_href'] = 'https://tender.x5.ru'
-                tender['tender_id'] = tds[0].text.strip()
-                tender['tender_url'] = ''
-                tender['tender_name'] = tds[1].text.strip()
-                tender['tender_date_open'] = (cls._parse_datetime_with_timezone(tds[2].text.strip()) - 604800) * 1000
-                tender['tender_date_publication'] = tender['tender_date_open']
-                tender['tender_date_open_until'] = cls._parse_datetime_with_timezone(tds[2].text.strip()) * 1000
-                tender['tender_placing_way'] = 0
-                tender['tender_placing_way_human'] = ''
-                tender['tender_price'] = 0
-                tender['tender_contacts'] = []
-                tender['tender_status'] = 3
-                tender['tender_lots'] = cls._get_lot(tender.get('tender_name'), tender.get('tender_url'))
-                tender['attachments'] = []
-                tender['customer_name'] = next(iter(t_data.keys()))
-                tender.update(t_data.get(tender['customer_name']))
-                ts.append(tender)
-            try:
-                next_url = 'https://tender.x5.ru' + soup.find('div', id='MainCVS').form.find_all('table')[-1]\
-                    .find_all('td')[-1].find('a').get('href')
-            except:
-                next_url = None
-            yield ts
+    def _get_contacts(cls, ps):
+        contact = {}
+        contact['fio'] = ps[2].contents[1].strip()
+        cont = ps[3].contents[1].strip()
+        if ',' in cont:
+            phone, email = cont.split(',')
+        elif ';' in cont:
+            phone, email = cont.split(';')
+        else:
+            phone, email = cont, ''
+        contact['phone'] = phone.strip()
+        contact['email'] = email.strip()
+        return contact
 
     @classmethod
     def parse_tenders(cls, html):
         tenders = []
         t_data = cls.get_data_organization()
         soup = BS(html, 'lxml')
-        trs = soup.h2.nextSibling.nextSibling.find_all('tr')[1:]
-        for tr in trs:
+        next_url = soup.find('table', class_='main_content_table').find('td', class_='mct_workarea') \
+            .find('div', class_='page_navi_block').find('a', title='следующая страница')
+        if not next_url:
+            return tenders, False
+        lis = soup.find('table', class_='main_content_table').find('td', class_='mct_workarea')\
+            .find_all('div', class_='tender_main_left')[1].find('ul', class_='tenders_list').find_all('li')
+        for li in lis:
             tender = {}
-            tds = tr.find_all('td')
-            tender['platform_href'] = 'https://tender.x5.ru'
-            tender['tender_id'] = tds[0].text.strip()
-            tender['tender_url'] = 'https://tender.x5.ru' + tds[0].find('a').get('href')
-            tender['tender_name'] = tds[1].text.strip()
-            tender['tender_date_publication'] = cls._parse_datetime_with_timezone(tds[2].text.strip()) * 1000
-            tender['tender_date_open'] = cls._parse_datetime_with_timezone(tds[3].text.strip()) * 1000
-            tender['tender_date_open_until'] = cls._parse_datetime_with_timezone(tds[4].text.strip()) * 1000
+            divs = li.find_all('div')
+            tender['platform_href'] = 'http://sitno.ru/'
+            tender['tender_name'] = divs[0].find('a').text.strip()
+            tender['tender_id'] = divs[3].find_all('p')[0].contents[1].strip()
+            tender['tender_url'] = 'http://sitno.ru/tender/index.php/' + divs[0].find('a').get('href')
+            date_pub = divs[3].find_all('p')[1].contents[2].strip()
+            date_close = divs[3].find_all('p')[2].contents[2].strip()
+            tender['tender_date_publication'] = cls._parse_datetime_with_timezone(date_pub) * 1000
+            tender['tender_date_open'] = cls._parse_datetime_with_timezone(date_pub) * 1000
+            tender['tender_date_open_until'] = cls._parse_datetime_with_timezone(date_close) * 1000
             tender['tender_placing_way'] = 0
             tender['tender_placing_way_human'] = ''
             tender['tender_price'] = 0
-            tender['tender_contacts'] = []
-            tender['tender_status'] = 1
+            tender['tender_contacts'] = [cls._get_contacts(divs[2].find_all('p'))]
+            tender['tender_status'] = 1 if tender['tender_date_open_until'] > tools.get_utc() else 3
             tender['tender_lots'] = cls._get_lot(tender.get('tender_name'), tender.get('tender_url'))
-            tender['attachments'] = cls._get_attachments(tender.get('tender_url'))
-            tender['customer_name'] = next(iter(t_data.keys()))
-            tender.update(t_data.get(tender['customer_name']))
+            tender['customer_name'] = divs[2].find_all('p')[1].contents[1].strip()
+            c_data = t_data.get(tender['customer_name'])
+            tender['customer_inn'] = c_data.get('inn')
+            tender['customer_kpp'] = c_data.get('kpp')
+            tender['customer_region'] = c_data.get('region')
             tenders.append(tender)
 
-        return cls._get_archive(tenders, 'https://tender.x5.ru' + soup.find('a', class_='TextLink').get('href'))
+        return tenders, next_url

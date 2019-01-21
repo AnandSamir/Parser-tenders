@@ -9,7 +9,7 @@ from src.config import config
 
 
 class Mapper:
-    platform_name = 'X5 Retail Group'
+    platform_name = 'СЭТ Ситно'
     _platform_href = None
     _tender_short_model = None
     _customer_guid = None
@@ -102,6 +102,51 @@ class Mapper:
                 value=self.tender_date_open_until,
                 type=FieldType.DateTime
             ))
+        )
+        # блок контактов и данных об организаторе
+        shared_model.add_category(
+            lambda c: c.set_properties(
+                name='Contacts',
+                displayName='Контактная информация',
+                modifications=[]
+            ).add_field(Field(
+                name='Organization',
+                displayName='Организация',
+                value=self.customer_name,
+                type=FieldType.String,
+                modifications=[]
+            )
+            ).add_array(
+                lambda c: c.set_properties(
+                    name='Contacts',
+                    displayName='Контакты',
+                    modifications=[Modification.HiddenLabel]
+                ).add_array_items(
+                    self.tender_contacts,  # list
+                    lambda item, index: c.add_field(Field(
+                        name='FIO' + str(index),
+                        displayName='ФИО',
+                        value=item['fio'],
+                        type=FieldType.String,
+                        modifications=[Modification.HiddenLabel]
+                    )
+                    ).add_field(Field(
+                        name='Phone' + str(index),
+                        displayName='Телефон',
+                        value=item['phone'],
+                        type=FieldType.String,
+                        modifications=[]
+                    )
+                    ).add_field(Field(
+                        name='Email' + str(index),
+                        displayName='Электронная почта',
+                        value=item['email'],
+                        type=FieldType.String,
+                        modifications=[Modification.Email]
+                    )
+                    )
+                )
+            )
         )
         return shared_model.to_json()
 
