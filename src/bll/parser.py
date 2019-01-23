@@ -47,7 +47,7 @@ class Parser:
         next_url = soup.find('table', class_='main_content_table').find('td', class_='mct_workarea') \
             .find('div', class_='page_navi_block').find('a', title='следующая страница')
         if not next_url:
-            return tenders, False
+            next_url = False
         lis = soup.find('table', class_='main_content_table').find('td', class_='mct_workarea')\
             .find_all('div', class_='tender_main_left')[1].find('ul', class_='tenders_list').find_all('li')
         for li in lis:

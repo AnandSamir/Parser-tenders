@@ -39,8 +39,6 @@ class Collector:
             html = HttpWorker.get_tenders(url.format(str(num_page))).text
             num_page += 1
             tender_list, next_url = Parser.parse_tenders(html)
-            if not next_url:
-                break
             for x in tender_list:
                 self.logger.info('[tender-{}] PARSING STARTED'.format(x['tender_url']))
                 res = self.repository.get_one(x['tender_id'])
@@ -53,6 +51,8 @@ class Collector:
                 yield mapper
 
                 self.logger.info('[tender-{}] PARSING OK'.format(x['tender_url']))
+            if not next_url:
+                break
 
     def collect(self):
         while True:
