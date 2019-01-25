@@ -26,17 +26,19 @@ class Parser:
 
     @classmethod
     def _get_contacts(cls, ps):
+        re_email = r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+'
+        re_phone = r'[\+\(]?\b[\d\,\(\)\-\ ]+\b'
+        phone = email = ''
         contact = {}
         contact['fio'] = ps[2].contents[1].strip()
-        cont = ps[3].contents[1].strip()
-        if ',' in cont:
-            phone, email = cont.split(',')
-        elif ';' in cont:
-            phone, email = cont.split(';')
-        else:
-            phone, email = cont, ''
-        contact['phone'] = phone.strip()
-        contact['email'] = email.strip()
+        cont = re.search(re_phone, ps[3].contents[1])
+        if cont:
+            phone = cont.group().strip()
+        cont = re.search(re_email, ps[3].contents[1])
+        if cont:
+            email = cont.group().strip()
+        contact['phone'] = phone
+        contact['email'] = email
         return contact
 
     @classmethod
