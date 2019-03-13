@@ -1,7 +1,7 @@
 import logging
 
 import requests
-
+import ssl
 from src.bll.tools import retry
 from src.config import config
 
@@ -9,16 +9,38 @@ from src.config import config
 class HttpWorker:
     timeout = 30
     logger = logging.getLogger('{}.{}'.format(config.app_id, 'http'))
-    cookies = {'ASP.NET_SessionId': 'dkcoef1sbsslbuhcodmbdckf'}
+    cookies = {'ASP.NET_SessionId': 'xfo1ymnu21oe2y3kv4quhf3z'}
     documentation_tab = {'__EVENTARGUMENT': 'CLICK:1'}
     addon_tab = {'__EVENTARGUMENT': 'CLICK:2'}
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
-                             'Chrome/71.0.3578.98 Safari/537.36'}
-
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
+                             'Chrome/72.0.3626.121 Safari/537.36', 'XXX-TenantId-Header': '2', 'Accept': '*/*'}
+    payload = {
+        'AdministrativeAffiliation': [],
+        'CustomerAddress': "",
+        'CustomerFullNameOrInn': "",
+        'FilterFillingApplicationEndDateTo': None,
+        'IsImmediate': False,
+        'OnlyTradesWithMyApplications': False,
+        'ParticipantHasApplicationsOnTrade': "",
+        'UsedClassificatorType': '10',
+        'classificatorCodes': [],
+        'filterDateFrom': None,
+        'filterDateTo': None,
+        'filterFillingApplicationEndDateFrom': None,
+        'filterPriceMax': "",
+        'filterPriceMin': "",
+        'filterTradeEasuzNumber': "",
+        'showOnlyOwnTrades': False,
+        'sortingParams': [],
+        'itemsPerPage': '100',
+        'tradeState': ""
+    }
     @classmethod
     @retry(logger)
-    def get_tenders(cls, url=None):
-        res = requests.get(url, headers=cls.headers, cookies=cls.cookies, proxies=config.proxy)
+    def get_tenders(cls, url=None, num_page=0):
+        cls.payload['page'] = str(num_page)
+        res = requests.post(url, headers=cls.headers, data=cls.payload, cookies=cls.cookies, proxies=config.proxy,
+                            verify=False)
         return res
 
     @classmethod

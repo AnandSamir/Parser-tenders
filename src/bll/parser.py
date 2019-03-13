@@ -8,12 +8,18 @@ import re
 
 class Parser:
 
-    @classmethod
-    def get_data_organization(cls):
-        try:
-            return config.customer_info_map
-        except KeyError:
-            return {"None": {"customer_inn": "", "customer_kpp": "", "customer_region": ""}}
+    STATUS = {
+        'Неизвестно': 0,
+        'Прием предложений': 1,
+        'Согласование': 2,
+        'Заключение договора': 3,
+        'Договор заключен': 3,
+        'Отменена': 4,
+        'Нет предложений': 5,
+        'Исполнение завершено': 6,
+        'Исполняется': 7,
+        'Расторжение': 8
+    }
 
     @classmethod
     def _parse_datetime_with_timezone(cls, datetime_str):
@@ -44,37 +50,29 @@ class Parser:
     @classmethod
     def parse_tenders(cls, html):
         tenders = []
-        t_data = cls.get_data_organization()
-        soup = BS(html, 'lxml')
-        next_url = soup.find('table', class_='main_content_table').find('td', class_='mct_workarea') \
-            .find('div', class_='page_navi_block').find('a', title='следующая страница')
-        if not next_url:
-            next_url = False
-        lis = soup.find('table', class_='main_content_table').find('td', class_='mct_workarea')\
-            .find_all('div', class_='tender_main_left')[1].find('ul', class_='tenders_list').find_all('li')
-        for li in lis:
+        for t in html:
             tender = {}
-            divs = li.find_all('div')
-            tender['platform_href'] = 'http://sitno.ru/'
-            tender['tender_name'] = divs[0].find('a').text.strip()
-            tender['tender_id'] = divs[3].find_all('p')[0].contents[1].strip()
-            tender['tender_url'] = 'http://sitno.ru/tender/index.php/' + divs[0].find('a').get('href')
-            date_pub = divs[3].find_all('p')[1].contents[2].strip()
-            date_close = divs[3].find_all('p')[2].contents[2].strip()
+            tender['tender_url'] = 'https://market.mosreg.ru/Trade/ViewTrade?id=' + str(t.get('Id'))
+
+            tender['platform_href'] = 'https://market.mosreg.ru/'
+            tender['tender_name'] = t.get('TradeName')
+            tender['tender_id'] = t.get('Id')
+            tender['tender_placing_way'] = 5000
+            tender['tender_status'] = cls.STATUS[t.get('TradeStateName')]
+            tender['customer_name'] = t.get('CustomerFullName')
+            tender['tender_price'] = t.get('InitialPrice')
+            date_pub = t.get('PublicationDate')
+            date_close = t.get('FillingApplicationEndDate')
             tender['tender_date_publication'] = cls._parse_datetime_with_timezone(date_pub) * 1000
             tender['tender_date_open'] = cls._parse_datetime_with_timezone(date_pub) * 1000
             tender['tender_date_open_until'] = cls._parse_datetime_with_timezone(date_close) * 1000
-            tender['tender_placing_way'] = 0
             tender['tender_placing_way_human'] = ''
-            tender['tender_price'] = 0
+
             tender['tender_contacts'] = [cls._get_contacts(divs[2].find_all('p'))]
-            tender['tender_status'] = 1 if tender['tender_date_open_until'] > tools.get_utc() else 3
             tender['tender_lots'] = cls._get_lot(tender.get('tender_name'), tender.get('tender_url'))
-            tender['customer_name'] = divs[2].find_all('p')[1].contents[1].strip()
-            c_data = t_data.get(tender['customer_name'])
             tender['customer_inn'] = c_data.get('inn')
-            tender['customer_kpp'] = c_data.get('kpp')
+            tender['customer_kpp'] = ''
             tender['customer_region'] = c_data.get('region')
             tenders.append(tender)
 
-        return tenders, next_url
+        return tenders

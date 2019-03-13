@@ -9,7 +9,7 @@ from src.config import config
 
 
 class Mapper:
-    platform_name = 'СЭТ Ситно'
+    platform_name = 'Электронный магазин Московской области'
     _platform_href = None
     _tender_short_model = None
     _customer_guid = None
@@ -34,6 +34,9 @@ class Mapper:
     customer_email = None
     attachments = None
     tender_contacts = None
+    tender_delivery_time = None
+    tender_place_delivery = None
+    tender_date_summarizing = None
 
     def __init__(self, id_, status, http_worker):
         """

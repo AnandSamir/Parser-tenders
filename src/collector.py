@@ -33,31 +33,30 @@ class Collector:
         return self._rabbitmq
 
     def tender_list_gen(self):
-        url = 'http://sitno.ru/tender/index.php/tenders_detail.php?LOT_ID=11767&PAGEN_1={}'
-        num_page = 1
-        while True:
-            html = HttpWorker.get_tenders(url.format(str(num_page))).text
+        url = 'https://api.market.mosreg.ru/api/Trade/GetTradesForParticipantOrAnonymous'
+        html = HttpWorker.get_tenders(url, str(1)).json()
+        for num_page in range(1, html['totalpages'] + 1):
+            html = HttpWorker.get_tenders(url, str(num_page)).json()
             num_page += 1
-            tender_list, next_url = Parser.parse_tenders(html)
+            tender_list = Parser.parse_tenders(html['invdata'])
             for x in tender_list:
                 self.logger.info('[tender-{}] PARSING STARTED'.format(x['tender_url']))
-                res = self.repository.get_one(x['tender_id'])
-                if res and res['status'] == 3:
-                    self.logger.info('[tender-{}] ALREADY EXIST'.format(x['tender_url']))
-                    continue
+                # res = self.repository.get_one(x['tender_id'])
+                # if res and res['status'] == 3:
+                #     self.logger.info('[tender-{}] ALREADY EXIST'.format(x['tender_url']))
+                #     continue
 
                 mapper = Mapper(id_=x['tender_id'], status=x['tender_status'], http_worker=HttpWorker)
                 mapper.load_tender_info(**x)
                 yield mapper
 
                 self.logger.info('[tender-{}] PARSING OK'.format(x['tender_url']))
-            if not next_url:
-                break
 
     def collect(self):
         while True:
             for mapper in self.tender_list_gen():
-                self.repository.upsert(mapper.tender_short_model)
+                # self.repository.upsert(mapper.tender_short_model)
                 for model in mapper.tender_model_gen():
-                    self.rabbitmq.publish(model)
+                    # self.rabbitmq.publish(model)
+                    print(model)
             sleep(config.sleep_time)
