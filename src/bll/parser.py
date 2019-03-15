@@ -26,53 +26,69 @@ class Parser:
         return tools.convert_datetime_str_to_timestamp(datetime_str, config.platform_timezone)
 
     @classmethod
-    def _get_lot(cls, name, url):
-        lots = {'num': 1, 'name': name, 'url': url, 'price': 0, 'positions': [{'name': name}]}
+    def _get_lot(cls, lot, url, price):
+        lots = {'num': lot[0], 'name': lot[1], 'url': url, 'price': price,
+                'positions': [{'name': lot[1], 'price': lot[4], 'unit': lot[2], 'number': lot[3], 'price_all': lot[5]}]}
         return [lots]
 
     @classmethod
-    def _get_contacts(cls, ps):
-        re_email = r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+'
-        re_phone = r'[\+\(]?\b[\d\,\(\)\-\ ]+\b'
-        phone = email = ''
+    def _get_contacts(cls, info):
         contact = {}
-        contact['fio'] = ps[2].contents[1].strip()
-        cont = re.search(re_phone, ps[3].contents[1])
-        if cont:
-            phone = cont.group().strip()
-        cont = re.search(re_email, ps[3].contents[1])
-        if cont:
-            email = cont.group().strip()
-        contact['phone'] = phone
-        contact['email'] = email
+        contact['name'] = info[0]
+        contact['address'] = info[2]
         return contact
+
+    @classmethod
+    def _get_table(cls, url):
+        lots, info, files = [], [], []
+        details = HttpWorker.get_tenders(url).text
+        soup = BS(details, 'lxml')
+        it = soup.find_all('table', class_='info-table')
+        tds = it[0].find_all('td') + it[1].find_all('td')
+        key_words = ['Полное наименование', 'ИНН', 'Адрес места нахождения', 'Сроки поставки', 'Место поставки']
+        for i in range(len(tds)):
+            for word in key_words:
+                if word in tds[i].text:
+                    info += [tds[i+1].text.strip()]
+                    break
+        trs = soup.find_all('div', class_='collapsibleTab')[0].find_all('tr')[1:]
+        num = 1
+        for tr in trs:
+            tds = tr.find_all('td')
+            lots += [{0: num, 1: tds[1].text, 2: tds[3].text, 3: tds[4].text, 4: tds[5].text, 5: tds[6].text}]
+            num += 1
+        trs = it[1].find_all('tr')[1:]
+        url_files = 'https://api.market.mosreg.ru/api/Trade/640652/GetTradeDocuments'
+        files = HttpWorker.get_tenders_get(url_files).json()
+        return lots, info, files
 
     @classmethod
     def parse_tenders(cls, html):
         tenders = []
         for t in html:
-            tender = {}
-            tender['tender_url'] = 'https://market.mosreg.ru/Trade/ViewTrade?id=' + str(t.get('Id'))
-
-            tender['platform_href'] = 'https://market.mosreg.ru/'
-            tender['tender_name'] = t.get('TradeName')
-            tender['tender_id'] = t.get('Id')
-            tender['tender_placing_way'] = 5000
-            tender['tender_status'] = cls.STATUS[t.get('TradeStateName')]
-            tender['customer_name'] = t.get('CustomerFullName')
-            tender['tender_price'] = t.get('InitialPrice')
-            date_pub = t.get('PublicationDate')
-            date_close = t.get('FillingApplicationEndDate')
-            tender['tender_date_publication'] = cls._parse_datetime_with_timezone(date_pub) * 1000
-            tender['tender_date_open'] = cls._parse_datetime_with_timezone(date_pub) * 1000
-            tender['tender_date_open_until'] = cls._parse_datetime_with_timezone(date_close) * 1000
-            tender['tender_placing_way_human'] = ''
-
-            tender['tender_contacts'] = [cls._get_contacts(divs[2].find_all('p'))]
-            tender['tender_lots'] = cls._get_lot(tender.get('tender_name'), tender.get('tender_url'))
-            tender['customer_inn'] = c_data.get('inn')
-            tender['customer_kpp'] = ''
-            tender['customer_region'] = c_data.get('region')
-            tenders.append(tender)
+            url = 'https://market.mosreg.ru/Trade/ViewTrade?id=' + str(t.get('Id'))
+            lots, info, files = cls._get_table(url)
+            for lot in lots:
+                tender = {}
+                tender['tender_url'] = url
+                tender['platform_href'] = 'https://market.mosreg.ru/'
+                tender['tender_name'] = t.get('TradeName')
+                tender['tender_id'] = t.get('Id')
+                tender['tender_placing_way'] = 5000
+                tender['tender_status'] = cls.STATUS[t.get('TradeStateName')]
+                tender['customer_name'] = t.get('CustomerFullName')
+                tender['tender_price'] = t.get('InitialPrice')
+                date_pub = t.get('PublicationDate')
+                date_close = t.get('FillingApplicationEndDate')
+                tender['tender_date_publication'] = cls._parse_datetime_with_timezone(date_pub) * 1000
+                tender['tender_date_open'] = cls._parse_datetime_with_timezone(date_pub) * 1000
+                tender['tender_date_open_until'] = cls._parse_datetime_with_timezone(date_close) * 1000
+                tender['tender_placing_way_human'] = ''
+                tender['tender_contacts'] = [cls._get_contacts(info)]
+                tender['tender_lots'] = cls._get_lot(lot, tender.get('tender_url'), tender['tender_price'])
+                tender['customer_inn'] = info[0]
+                tender['customer_kpp'] = ''
+                tender['customer_region'] = info[0][:2]
+                tenders.append(tender)
 
         return tenders

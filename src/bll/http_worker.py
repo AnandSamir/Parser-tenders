@@ -4,6 +4,8 @@ import requests
 import ssl
 from src.bll.tools import retry
 from src.config import config
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 class HttpWorker:
@@ -32,7 +34,7 @@ class HttpWorker:
         'filterTradeEasuzNumber': "",
         'showOnlyOwnTrades': False,
         'sortingParams': [],
-        'itemsPerPage': '100',
+        'itemsPerPage': '10',
         'tradeState': ""
     }
     @classmethod
@@ -41,6 +43,12 @@ class HttpWorker:
         cls.payload['page'] = str(num_page)
         res = requests.post(url, headers=cls.headers, data=cls.payload, cookies=cls.cookies, proxies=config.proxy,
                             verify=False)
+        return res
+
+    @classmethod
+    @retry(logger)
+    def get_tenders_get(cls, url=None):
+        res = requests.get(url, headers=cls.headers, cookies=cls.cookies, proxies=config.proxy, verify=False)
         return res
 
     @classmethod

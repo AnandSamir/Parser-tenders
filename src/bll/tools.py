@@ -56,8 +56,9 @@ def convert_datetime_str_to_timestamp(datetime_str, platform_timezone):
     Returns:
         int: unix timestamp
     """
+    datetime_str = (datetime_str.split('.')[0]).replace('T', ' ').replace('Z', '')
     if ':' in datetime_str:
-        date_format = "%d.%m.%Y %H:%M:%S%z" if datetime_str.count(':') == 2 else "%d.%m.%Y %H:%M%z"
+        date_format = "%Y-%m-%d %H:%M:%S%z" if datetime_str.count(':') == 2 else "%d.%m.%Y %H:%M%z"
     else:
         date_format = "%d.%m.%Y %H:%M:%S%z"
         datetime_str += " 00:00:00"

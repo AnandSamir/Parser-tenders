@@ -84,6 +84,57 @@ class Mapper:
                 modifications=[]
             )
         )
+        # информация о закупках
+        if lot and 'positions' in lot:
+            shared_model.add_category(
+                lambda c: c.set_properties(
+                    name='ObjectInfo',
+                    displayName='Информация о объекте закупки'
+                ).add_table(
+                    lambda t: t.set_properties(
+                        name='Objects',
+                        displayName='Объекты закупки'
+                    ).set_header(
+                        lambda th: th.add_cells([
+                            Head(name='Name', displayName='Наименование'),
+                            Head(name='Unit', displayName='Единицы измерения'),
+                            Head(name='Number', displayName='Количество'),
+                            Head(name='PricePerOne',
+                                 displayName='Цена за единицу'),
+                            Head(name='Price', displayName='Стоимость')
+                        ])
+                    ).add_rows(
+                        lot['positions'],
+                        lambda elem, row: row.add_cells([
+                            Cell(
+                                name='Name',
+                                type=FieldType.String,
+                                value=elem['name']
+                            ),
+                            Cell(
+                                name='Unit',
+                                type=FieldType.String,
+                                value=elem['unit']
+                            ),
+                            Cell(
+                                name='Number',
+                                type=FieldType.Integer,
+                                value=elem['number']
+                            ),
+                            Cell(
+                                name='PricePerOne',
+                                type=FieldType.Price,
+                                value=elem['price']
+                            ),
+                            Cell(
+                                name='Price',
+                                type=FieldType.Price,
+                                value=elem['price_all']
+                            )
+                        ])
+                    )
+                )
+            )
         # блок данных о заказе (в основном даты и места)
         shared_model.add_category(
             lambda c: c.set_properties(
@@ -104,6 +155,21 @@ class Mapper:
                 displayName='Дата окончания приема заявок',
                 value=self.tender_date_open_until,
                 type=FieldType.DateTime
+            )).add_field(Field(
+                name='dateSummarizing',
+                displayName='Дата и время подведения итогов',
+                value=self.tender_date_summarizing,
+                type=FieldType.DateTime
+            )).add_field(Field(
+                name='deliveryTime',
+                displayName='Сроки поставки',
+                value=self.tender_delivery_time,
+                type=FieldType.String
+            )).add_field(Field(
+                name='placeDelivery',
+                displayName='Место поставки',
+                value=self.tender_place_delivery,
+                type=FieldType.String
             ))
         )
         # блок контактов и данных об организаторе
@@ -112,13 +178,6 @@ class Mapper:
                 name='Contacts',
                 displayName='Контактная информация',
                 modifications=[]
-            ).add_field(Field(
-                name='Organization',
-                displayName='Организация',
-                value=self.customer_name,
-                type=FieldType.String,
-                modifications=[]
-            )
             ).add_array(
                 lambda c: c.set_properties(
                     name='Contacts',
@@ -127,23 +186,16 @@ class Mapper:
                 ).add_array_items(
                     self.tender_contacts,  # list
                     lambda item, index: c.add_field(Field(
-                        name='FIO' + str(index),
-                        displayName='ФИО',
-                        value=item['fio'],
+                        name='Name_organization' + str(index),
+                        displayName='Название организации',
+                        value=item['name'],
                         type=FieldType.String,
                         modifications=[Modification.HiddenLabel]
                     )
                     ).add_field(Field(
-                        name='Phone' + str(index),
-                        displayName='Телефон',
-                        value=item['phone'],
-                        type=FieldType.String,
-                        modifications=[]
-                    )
-                    ).add_field(Field(
-                        name='Email' + str(index),
-                        displayName='Электронная почта',
-                        value=item['email'],
+                        name='Address' + str(index),
+                        displayName='Адрес',
+                        value=item['address'],
                         type=FieldType.String,
                         modifications=[Modification.Email]
                     )
@@ -194,6 +246,12 @@ class Mapper:
             'submissionStartDateTime': self.tender_date_open,
             # Дата окончания подачи заявок UNIX EPOCH (UTC)
             'submissionCloseDateTime': self.tender_date_open_until,
+            # Сроки поставки
+            'deliveryTime': self.tender_delivery_time,
+            # Место поставки
+            'placeDelivery': self.tender_place_delivery,
+            # Дата и время подведения итогов
+            'dateSummarizing': self.tender_date_summarizing,
             # Дата проведения аукциона в электронной форме (если есть) UNIX EPOCH (UTC)
             'biddingDateTime': self.tender_date_open,
             # Дата маппинга модели в UNIX EPOCH (UTC) (milliseconds)
