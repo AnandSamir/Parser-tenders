@@ -34,7 +34,7 @@ class HttpWorker:
         'filterTradeEasuzNumber': "",
         'showOnlyOwnTrades': False,
         'sortingParams': [],
-        'itemsPerPage': '10',
+        'itemsPerPage': '100',
         'tradeState': ""
     }
     @classmethod
